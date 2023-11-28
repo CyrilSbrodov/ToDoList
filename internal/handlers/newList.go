@@ -22,10 +22,13 @@ func (h *Handler) NewList() http.HandlerFunc {
 			return
 		}
 		// TODO проверка полей юзера
-		if err = h.storage.NewList(user); err != nil {
+		if err = h.storage.NewList(&user); err != nil {
 			h.logger.LogErr(err, "")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		return
 	}
 }
