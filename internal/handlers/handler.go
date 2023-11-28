@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/CyrilSbrodov/ToDoList/cmd/config"
+	"github.com/CyrilSbrodov/ToDoList/cmd/loggers"
 	"github.com/CyrilSbrodov/ToDoList/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
@@ -12,12 +13,14 @@ type Handlers interface {
 
 type Handler struct {
 	cfg     *config.ServerConfig
+	logger  *loggers.Logger
 	storage storage.Storage
 }
 
-func NewHandler(cfg *config.ServerConfig, storage storage.Storage) *Handler {
+func NewHandler(cfg *config.ServerConfig, logger *loggers.Logger, storage storage.Storage) *Handler {
 	return &Handler{
 		cfg:     cfg,
+		logger:  logger,
 		storage: storage,
 	}
 }
