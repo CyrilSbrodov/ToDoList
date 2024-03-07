@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"github.com/CyrilSbrodov/ToDoList/cmd/config"
 	"github.com/CyrilSbrodov/ToDoList/cmd/loggers"
 	"github.com/go-chi/chi/v5"
@@ -26,5 +25,4 @@ func NewServerApp() *ServerApp {
 }
 
 func (a *ServerApp) Run() {
-	fmt.Println("test")
 }
