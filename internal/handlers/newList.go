@@ -22,7 +22,7 @@ func (h *Handler) NewList() http.HandlerFunc {
 			return
 		}
 		// TODO проверка полей юзера
-		if err = h.storage.NewList(&user); err != nil {
+		if err = h.storage.NewList(r.Context(), &user); err != nil {
 			h.logger.LogErr(err, "")
 			w.WriteHeader(http.StatusInternalServerError)
 			return

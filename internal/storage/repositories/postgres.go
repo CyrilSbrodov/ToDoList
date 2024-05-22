@@ -2,11 +2,15 @@ package repositories
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/CyrilSbrodov/ToDoList/cmd/config"
 	"github.com/CyrilSbrodov/ToDoList/cmd/loggers"
 	"github.com/CyrilSbrodov/ToDoList/internal/storage/models"
 	"github.com/CyrilSbrodov/ToDoList/pkg/client/postgres"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
@@ -23,48 +27,55 @@ func createTable(ctx context.Context, client postgres.Client, logger *loggers.Lo
 		logger.LogErr(err, "failed to begin transaction")
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+		}
+	}()
 
 	//создание таблиц
-	q := `CREATE TABLE if not exists users (
-    		id BIGINT PRIMARY KEY generated always as identity,
-    		login VARCHAR(200) NOT NULL unique,
-    		hashed_password VARCHAR(200) NOT NULL
-		);
-		CREATE UNIQUE INDEX if not exists users_login_uindex on users (login);
-		CREATE TABLE if not exists user_group (
-    		user_id BIGINT,
-    		id BIGINT PRIMARY KEY generated always as identity,
-    		FOREIGN KEY (user_id) REFERENCES users(id),
-    		text bytea                         
-		);
-		CREATE TABLE if not exists binary_table (
-    		user_id BIGINT,
-    		id BIGINT PRIMARY KEY generated always as identity,
-    		FOREIGN KEY (user_id) REFERENCES users(id),
-    		binary_data bytea                          
-		);
-		CREATE TABLE if not exists passwords (
-    		user_id BIGINT,
-    		id BIGINT PRIMARY KEY generated always as identity,
-    		FOREIGN KEY (user_id) REFERENCES users(id),
-    		login bytea,
-		    password bytea
-		);
-		CREATE TABLE if not exists cards (
-    		user_id BIGINT,
-    		id BIGINT PRIMARY KEY generated always as identity,
-    		card_number bytea,
-    		FOREIGN KEY (user_id) REFERENCES users(id),
-    		card_holder bytea,
-    		cvc bytea                            
-		);
-		CREATE UNIQUE INDEX if not exists cards_card_number_uindex on cards (card_number);`
+	tables := []string{
+		`CREATE TABLE IF NOT EXISTS users (
+            user_id SERIAL PRIMARY KEY,
+            user_name VARCHAR(50) NOT NULL UNIQUE,
+            password_hash VARCHAR(255) NOT NULL,
+            email VARCHAR(100) NOT NULL UNIQUE
+        )`,
+		`CREATE TABLE IF NOT EXISTS groups (
+            group_id SERIAL PRIMARY KEY,
+            group_name VARCHAR(100) NOT NULL
+        )`,
+		`CREATE TABLE IF NOT EXISTS user_groups (
+            user_id INT NOT NULL,
+            group_id INT NOT NULL,
+            PRIMARY KEY (user_id, group_id),
+            FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
+            FOREIGN KEY (group_id) REFERENCES groups (group_id) ON DELETE CASCADE
+        )`,
+		`CREATE TABLE IF NOT EXISTS tasks (
+            task_id SERIAL PRIMARY KEY,
+            task_description TEXT NOT NULL,
+            created_by INT NOT NULL,
+            group_id INT,
+            is_completed BOOLEAN NOT NULL DEFAULT FALSE,
+            FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE SET NULL,
+            FOREIGN KEY (group_id) REFERENCES groups (group_id) ON DELETE SET NULL
+        )`,
+		`CREATE TABLE IF NOT EXISTS task_assignees (
+            task_id INT NOT NULL,
+            user_id INT NOT NULL,
+            PRIMARY KEY (task_id, user_id),
+            FOREIGN KEY (task_id) REFERENCES tasks (task_id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
+        )`,
+	}
 
-	_, err = tx.Exec(ctx, q)
-	if err != nil {
-		logger.LogErr(err, "failed to create table")
-		return err
+	for _, table := range tables {
+		_, err = tx.Exec(ctx, table)
+		if err != nil {
+			logger.LogErr(err, "Unable to create table")
+			return err
+		}
 	}
 	return tx.Commit(ctx)
 }
@@ -83,18 +94,46 @@ func NewPGStore(client postgres.Client, cfg *config.ServerConfig, logger *logger
 	}, nil
 }
 
-func (p *PGStore) NewUser(u *models.User) error {
+func (p *PGStore) NewUser(ctx context.Context, u *models.User) (string, error) {
+	hashPassword, err := p.hashPassword(u.Password)
+	if err != nil {
+		return "", err
+	}
+
+	q := `INSERT INTO users (user_name, password_hash, email) VALUES ($1, $2, $3) RETURNING user_id`
+	if err = p.client.QueryRow(ctx, q, u.Name, hashPassword, u.Email).Scan(&u.Id); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return u.Id, errors.New("user name or email already exists")
+		}
+		p.logger.LogErr(err, "Failure to insert object into table")
+		return u.Id, err
+	}
+	return u.Id, nil
+
+}
+
+func (p *PGStore) Auth(ctx context.Context, u *models.User) error {
 	return nil
 }
 
-func (p *PGStore) Auth(u *models.User) error {
+func (p *PGStore) NewList(ctx context.Context, u *models.User) error {
 	return nil
 }
 
-func (p *PGStore) NewList(u *models.User) error {
-	return nil
-}
-
-func (p *PGStore) GetAll(u *models.User) (models.User, error) {
+func (p *PGStore) GetAll(ctx context.Context, u *models.User) (models.User, error) {
 	return *u, nil
+}
+
+func (p *PGStore) UpdateUser(ctx context.Context, u *models.User) error {
+	return nil
+}
+
+func (p *PGStore) hashPassword(pass string) (string, error) {
+	h, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
+	if err != nil {
+		p.logger.LogErr(err, "failed to hashed password")
+		return "", err
+	}
+	return fmt.Sprintf("%s", h), nil
 }

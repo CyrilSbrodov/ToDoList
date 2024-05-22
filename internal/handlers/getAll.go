@@ -11,7 +11,7 @@ func (h *Handler) GetAll() http.HandlerFunc {
 
 		//ToDo check auth
 		user := models.User{Id: "1"}
-		user, err := h.storage.GetAll(&user)
+		user, err := h.storage.GetAll(r.Context(), &user)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusNotFound)
