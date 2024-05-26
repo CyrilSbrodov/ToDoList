@@ -2,7 +2,7 @@ package storage
 
 import (
 	"context"
-	"github.com/CyrilSbrodov/ToDoList/internal/storage/models"
+	"github.com/CyrilSbrodov/ToDoList/internal/models"
 )
 
 type Storage interface {

@@ -2,8 +2,8 @@ package postgres
 
 import (
 	"context"
-	"github.com/CyrilSbrodov/ToDoList/cmd/config"
 	"github.com/CyrilSbrodov/ToDoList/cmd/loggers"
+	"github.com/CyrilSbrodov/ToDoList/internal/config"
 	"github.com/jackc/pgx/v5"
 	"time"
 
@@ -20,13 +20,13 @@ type Client interface {
 	Ping(ctx context.Context) error
 }
 
-func NewClient(ctx context.Context, maxAttempts int, cfg *config.ServerConfig, logger *loggers.Logger) (pool *pgxpool.Pool, err error) {
+func NewClient(ctx context.Context, maxAttempts int, cfg *config.Config, logger *loggers.Logger) (pool *pgxpool.Pool, err error) {
 	err = DoWithTries(func() error {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 
 		defer cancel()
 
-		pool, err = pgxpool.New(ctx, cfg.DatabaseDSN)
+		pool, err = pgxpool.New(ctx, cfg.StoragePath)
 		if err != nil {
 			logger.LogErr(err, "Failure to connect to PostgreSQL")
 		}

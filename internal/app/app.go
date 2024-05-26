@@ -2,9 +2,8 @@ package app
 
 import (
 	"context"
-	"fmt"
-	"github.com/CyrilSbrodov/ToDoList/cmd/config"
 	"github.com/CyrilSbrodov/ToDoList/cmd/loggers"
+	"github.com/CyrilSbrodov/ToDoList/internal/config"
 	"github.com/CyrilSbrodov/ToDoList/internal/handlers"
 	"github.com/CyrilSbrodov/ToDoList/internal/storage/repositories"
 	"github.com/CyrilSbrodov/ToDoList/pkg/client/postgres"
@@ -14,15 +13,15 @@ import (
 )
 
 type ServerApp struct {
-	cfg    config.ServerConfig
+	cfg    config.Config
 	logger *loggers.Logger
 	router *mux.Router
 }
 
 func NewServerApp() *ServerApp {
-	cfg := config.ServerConfigInit()
+	cfg := config.NewConfig()
 	router := mux.NewRouter()
-	logger := loggers.NewLogger()
+	logger := loggers.SetupLogger(cfg.Env)
 
 	return &ServerApp{
 		router: router,
@@ -47,12 +46,16 @@ func (a *ServerApp) Run() {
 
 	h.Register(a.router)
 
-	server := &http.Server{}
-	server.Handler = a.router
-	server.Addr = a.cfg.Addr
+	server := &http.Server{
+		Addr:         a.cfg.Listener.Addr,
+		Handler:      a.router,
+		ReadTimeout:  a.cfg.Listener.Timeout,
+		WriteTimeout: a.cfg.Listener.Timeout,
+		IdleTimeout:  a.cfg.Listener.IdleTimeout,
+	}
 
 	if err = server.ListenAndServe(); err != nil {
-		fmt.Println(err)
+		a.logger.LogErr(err, "failed to start server")
 		return
 	}
 }

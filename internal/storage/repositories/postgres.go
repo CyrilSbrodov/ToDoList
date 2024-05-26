@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/CyrilSbrodov/ToDoList/cmd/config"
 	"github.com/CyrilSbrodov/ToDoList/cmd/loggers"
-	"github.com/CyrilSbrodov/ToDoList/internal/storage/models"
+	"github.com/CyrilSbrodov/ToDoList/internal/config"
+	"github.com/CyrilSbrodov/ToDoList/internal/models"
 	"github.com/CyrilSbrodov/ToDoList/pkg/client/postgres"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -16,7 +16,7 @@ import (
 
 type PGStore struct {
 	client postgres.Client
-	cfg    *config.ServerConfig
+	cfg    *config.Config
 	logger *loggers.Logger
 }
 
@@ -80,7 +80,7 @@ func createTable(ctx context.Context, client postgres.Client, logger *loggers.Lo
 	return tx.Commit(ctx)
 }
 
-func NewPGStore(client postgres.Client, cfg *config.ServerConfig, logger *loggers.Logger) (*PGStore, error) {
+func NewPGStore(client postgres.Client, cfg *config.Config, logger *loggers.Logger) (*PGStore, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := createTable(ctx, client, logger); err != nil {
@@ -104,7 +104,7 @@ func (p *PGStore) NewUser(ctx context.Context, u *models.User) (string, error) {
 	if err = p.client.QueryRow(ctx, q, u.Name, hashPassword, u.Email).Scan(&u.Id); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return u.Id, errors.New("user name or email already exists")
+			return u.Id, models.ErrorUserConflict
 		}
 		p.logger.LogErr(err, "Failure to insert object into table")
 		return u.Id, err

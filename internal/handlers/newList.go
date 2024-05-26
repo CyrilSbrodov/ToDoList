@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/CyrilSbrodov/ToDoList/internal/storage/models"
+	"github.com/CyrilSbrodov/ToDoList/internal/models"
 	"io"
 	"net/http"
 )
