@@ -10,9 +10,9 @@ type User struct {
 }
 
 type TodoList struct {
+	UserID string `json:"user_id"`
 	Id     string `json:"id_list"`
-	Theme  string `json:"theme"`
-	Post   string `json:"post"`
+	Task   string `json:"post"`
 	Group  string `json:"group"`
 	Status bool   `json:"status"`
 }

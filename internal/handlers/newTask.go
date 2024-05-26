@@ -3,27 +3,21 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/CyrilSbrodov/ToDoList/internal/models"
-	"io"
 	"net/http"
 )
 
 func (h *Handler) NewList() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		content, err := io.ReadAll(r.Body)
-		if err != nil {
-			h.logger.LogErr(err, "")
-			w.WriteHeader(http.StatusInternalServerError)
+		var list models.TodoList
+		if err := json.NewDecoder(r.Body).Decode(&list); err != nil {
+			//TODO log error
+			http.Error(w, "invalid request body", http.StatusBadRequest)
 			return
 		}
-		var user models.User
-		if err = json.Unmarshal(content, &user); err != nil {
-			h.logger.LogErr(err, "")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+
 		// TODO проверка полей юзера
-		if err = h.storage.NewList(r.Context(), &user); err != nil {
-			h.logger.LogErr(err, "")
+		if err := h.service.NewTask(r.Context(), &list); err != nil {
+			h.logger.Error("func newlist", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

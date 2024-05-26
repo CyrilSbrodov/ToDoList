@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"github.com/CyrilSbrodov/ToDoList/cmd/loggers"
@@ -10,7 +12,6 @@ import (
 	"github.com/CyrilSbrodov/ToDoList/pkg/client/postgres"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
@@ -24,7 +25,7 @@ type PGStore struct {
 func createTable(ctx context.Context, client postgres.Client, logger *loggers.Logger) error {
 	tx, err := client.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		logger.LogErr(err, "failed to begin transaction")
+		logger.Error("failed to begin transaction", err)
 		return err
 	}
 	defer func() {
@@ -73,7 +74,7 @@ func createTable(ctx context.Context, client postgres.Client, logger *loggers.Lo
 	for _, table := range tables {
 		_, err = tx.Exec(ctx, table)
 		if err != nil {
-			logger.LogErr(err, "Unable to create table")
+			logger.Error("Unable to create table", err)
 			return err
 		}
 	}
@@ -84,7 +85,7 @@ func NewPGStore(client postgres.Client, cfg *config.Config, logger *loggers.Logg
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := createTable(ctx, client, logger); err != nil {
-		logger.LogErr(err, "failed to create table")
+		logger.Error("failed to create table", err)
 		return nil, err
 	}
 	return &PGStore{
@@ -95,45 +96,56 @@ func NewPGStore(client postgres.Client, cfg *config.Config, logger *loggers.Logg
 }
 
 func (p *PGStore) NewUser(ctx context.Context, u *models.User) (string, error) {
-	hashPassword, err := p.hashPassword(u.Password)
-	if err != nil {
-		return "", err
-	}
+	hashPassword := p.hashPassword(u.Password)
 
 	q := `INSERT INTO users (user_name, password_hash, email) VALUES ($1, $2, $3) RETURNING user_id`
-	if err = p.client.QueryRow(ctx, q, u.Name, hashPassword, u.Email).Scan(&u.Id); err != nil {
+	if err := p.client.QueryRow(ctx, q, u.Name, hashPassword, u.Email).Scan(&u.Id); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return u.Id, models.ErrorUserConflict
 		}
-		p.logger.LogErr(err, "Failure to insert object into table")
+		p.logger.Error("Failure to insert object into table", err)
 		return u.Id, err
 	}
 	return u.Id, nil
 
 }
 
-func (p *PGStore) Auth(ctx context.Context, u *models.User) error {
+func (p *PGStore) Auth(ctx context.Context, u *models.User) (string, error) {
+	hashPassword := p.hashPassword(u.Password)
+	q := `SELECT user_id FROM users WHERE user_name=$1 AND password_hash=$2`
+	if err := p.client.QueryRow(ctx, q, u.Name, hashPassword).Scan(&u.Id); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", models.ErrorUserNotFound
+		}
+		p.logger.Error("Failure to select object from table", err)
+		return "", err
+	}
+	return u.Id, nil
+}
+
+func (p *PGStore) NewTask(ctx context.Context, list *models.TodoList) error {
+	q := `INSERT INTO tasks (task_description, created_by, group_id, is_completed) VALUES ($1, $2, $3, $4)`
+	if err := p.client.QueryRow(ctx, q, list.Task, list.UserID, list.Group, list.Status); err != nil {
+		// TODO error
+	}
 	return nil
 }
 
-func (p *PGStore) NewList(ctx context.Context, u *models.User) error {
+func (p *PGStore) GetAll(ctx context.Context, u *models.User) error {
 	return nil
-}
-
-func (p *PGStore) GetAll(ctx context.Context, u *models.User) (models.User, error) {
-	return *u, nil
 }
 
 func (p *PGStore) UpdateUser(ctx context.Context, u *models.User) error {
 	return nil
 }
 
-func (p *PGStore) hashPassword(pass string) (string, error) {
-	h, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
-	if err != nil {
-		p.logger.LogErr(err, "failed to hashed password")
-		return "", err
-	}
-	return fmt.Sprintf("%s", h), nil
+func (p *PGStore) UpdateList(ctx context.Context, list *models.User) error {
+	return nil
+}
+
+func (p *PGStore) hashPassword(pass string) string {
+	h := hmac.New(sha256.New, []byte("password"))
+	h.Write([]byte(pass))
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

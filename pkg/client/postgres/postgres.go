@@ -28,13 +28,13 @@ func NewClient(ctx context.Context, maxAttempts int, cfg *config.Config, logger 
 
 		pool, err = pgxpool.New(ctx, cfg.StoragePath)
 		if err != nil {
-			logger.LogErr(err, "Failure to connect to PostgreSQL")
+			logger.Error("Failure to connect to PostgreSQL", err)
 		}
 		return nil
 
 	}, maxAttempts, 5*time.Second)
 	if err != nil {
-		logger.LogErr(err, "Failure to connect to PostgreSQL")
+		logger.Error("Failure to connect to PostgreSQL", err)
 	}
 	return
 }

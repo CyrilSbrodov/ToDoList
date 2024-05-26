@@ -6,8 +6,8 @@ import (
 )
 
 type Storage interface {
-	NewUser(ctx context.Context, user *models.User) (string, error)
-	Auth(ctx context.Context, user *models.User) error
-	NewList(ctx context.Context, user *models.User) error
-	GetAll(ctx context.Context, user *models.User) (models.User, error)
+	NewUser(ctx context.Context, u *models.User) (string, error)
+	Auth(ctx context.Context, u *models.User) (string, error)
+	NewTask(ctx context.Context, list *models.TodoList) error
+	GetAll(ctx context.Context, u *models.User) error
 }
