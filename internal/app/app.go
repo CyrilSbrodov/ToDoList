@@ -8,7 +8,6 @@ import (
 	"github.com/CyrilSbrodov/ToDoList/internal/storage/repositories"
 	"github.com/CyrilSbrodov/ToDoList/pkg/client/postgres"
 	"github.com/gorilla/mux"
-	"github.com/rs/zerolog/log"
 	"net/http"
 )
 
@@ -33,12 +32,12 @@ func NewServerApp() *ServerApp {
 func (a *ServerApp) Run() {
 	client, err := postgres.NewClient(context.Background(), 5, &a.cfg, a.logger)
 	if err != nil {
-		log.Err(err)
+		a.logger.LogErr(err, "failed to start pg client")
 		return
 	}
 	store, err := repositories.NewPGStore(client, &a.cfg, a.logger)
 	if err != nil {
-		log.Err(err)
+		a.logger.LogErr(err, "failed to start pg store")
 		return
 	}
 
