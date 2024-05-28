@@ -8,24 +8,23 @@ import (
 
 func (h *Handler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		//ToDo check auth
-		user := models.User{Id: "1"}
-		err := h.service.GetAll(r.Context(), &user)
+		var user models.User
+		user.Id = r.Context().Value(ctxKeyUser).(string)
+		//err := h.service.GetAll(r.Context(), &user)
+		//// TODO err no rows and internal
+		//if err != nil {
+		//	w.Header().Set("Content-Type", "application/json")
+		//	http.Error(w, "empty task", http.StatusBadRequest)
+		//	return
+		//}
+		data, err := json.Marshal(user)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(err.Error()))
+			http.Error(w, "failed to encode data", http.StatusInternalServerError)
 			return
 		}
-		userJson, err := json.Marshal(user)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write(userJson)
+		_, _ = w.Write(data)
 	}
 }

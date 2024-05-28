@@ -40,7 +40,7 @@ func (h *Handler) SignIn() http.HandlerFunc {
 			http.Error(w, "invalid request body", http.StatusBadRequest)
 			return
 		}
-		token, err := h.service.GetUser(r.Context(), &u)
+		token, err := h.service.GenerateToken(r.Context(), &u)
 		if err != nil {
 			if errors.Is(err, models.ErrorUserNotFound) {
 				http.Error(w, "User not found", http.StatusNotFound)

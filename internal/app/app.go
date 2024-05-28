@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"github.com/CyrilSbrodov/ToDoList/cmd/loggers"
 	"github.com/CyrilSbrodov/ToDoList/internal/config"
 	"github.com/CyrilSbrodov/ToDoList/internal/handlers"
@@ -9,9 +10,12 @@ import (
 	"github.com/CyrilSbrodov/ToDoList/internal/storage/repositories"
 	"github.com/CyrilSbrodov/ToDoList/pkg/client/postgres"
 	"github.com/gorilla/mux"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
+	"time"
 )
 
 type ServerApp struct {
@@ -58,24 +62,23 @@ func (a *ServerApp) Run() {
 	}
 
 	go func() {
-		if err = srv.ListenAndServe(); err != nil {
-			a.logger.Error("server", err)
+		if err = srv.ListenAndServe(); err != nil && !errors.Is(http.ErrServerClosed, err) {
+			a.logger.Error("server not started", err, "server")
 		}
 	}()
 
 	c := make(chan os.Signal, 1)
 
-	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	<-c
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	err = srv.Shutdown(ctx)
-	if err != nil {
-		a.logger.Info("server", "failed to shutting down gracefully")
+	if err = srv.Shutdown(ctx); err != nil {
+		a.logger.Error("server", "failed to shutting down gracefully", err)
 		return
 	}
-	a.logger.Info("server", "shutting down")
+	a.logger.Info("shutting down", slog.String("server", a.cfg.Listener.Addr))
 	os.Exit(0)
 }
