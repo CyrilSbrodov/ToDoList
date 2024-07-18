@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func (h *Handler) NewList() http.HandlerFunc {
+func (h *Handler) newList() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.Context().Value(ctxKeyUser).(string)
 		fmt.Println("id: ", id)
@@ -23,7 +23,7 @@ func (h *Handler) NewList() http.HandlerFunc {
 		}
 		fmt.Println(list)
 		// TODO проверка полей юзера
-		if err := h.service.NewGroup(r.Context(), &list); err != nil {
+		if err := h.service.CreateGroup(r.Context(), &list); err != nil {
 			h.logger.Error("func newlist", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return

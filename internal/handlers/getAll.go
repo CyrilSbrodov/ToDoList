@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func (h *Handler) GetAll() http.HandlerFunc {
+func (h *Handler) getAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user models.User
 		user.Id = r.Context().Value(ctxKeyUser).(string)

@@ -13,12 +13,15 @@ func (t *Transport) GetAll(ctx context.Context, u *models.User) error {
 	return nil
 }
 
-func (t *Transport) NewGroup(ctx context.Context, list *models.TodoList) error {
-	return t.Storage.NewGroup(ctx, list)
+func (t *Transport) CreateGroup(ctx context.Context, list *models.TodoList) error {
+	return t.Storage.CreateGroup(ctx, list)
 }
-func (t *Transport) AddInGroup(ctx context.Context, list *models.TodoList) error {
-	return t.Storage.AddInGroup(ctx, list)
+func (t *Transport) AddUserToGroup(ctx context.Context, list *models.TodoList) error {
+	return t.Storage.AddUserToGroup(ctx, list)
 }
 func (t *Transport) DeleteGroup(ctx context.Context, list *models.TodoList) error {
 	return t.Storage.DeleteGroup(ctx, list)
+}
+func (t *Transport) RemoveUserFromGroup(ctx context.Context, list *models.TodoList) error {
+	return t.Storage.RemoveUserFromGroup(ctx, list)
 }

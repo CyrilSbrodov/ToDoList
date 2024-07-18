@@ -10,11 +10,11 @@ type User struct {
 }
 
 type TodoList struct {
-	UserID       string `json:"user_id"`
-	Id           string `json:"id_list"`
-	GroupID      string `json:"group_id"`
-	InviteUserID string `json:"invite_user_id"`
-	Task         string `json:"post"`
-	Group        string `json:"group"`
-	Status       bool   `json:"status"`
+	UserID        string `json:"user_id"`
+	Id            string `json:"id_list"`
+	GroupID       string `json:"group_id"`
+	AnotherUserID string `json:"another_user_id"`
+	Task          string `json:"post"`
+	Group         string `json:"group"`
+	Status        bool   `json:"status"`
 }

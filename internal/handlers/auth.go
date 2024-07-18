@@ -8,7 +8,8 @@ import (
 	"net/http"
 )
 
-func (h *Handler) SignUp() http.HandlerFunc {
+// signUp - метод регистрации
+func (h *Handler) signUp() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user models.User
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
@@ -32,7 +33,8 @@ func (h *Handler) SignUp() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) SignIn() http.HandlerFunc {
+// signIn - метод авторизации и аутентификации
+func (h *Handler) signIn() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var u models.User
 		if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
