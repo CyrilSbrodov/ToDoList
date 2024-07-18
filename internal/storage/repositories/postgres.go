@@ -196,6 +196,11 @@ func (p *PGStore) DeleteGroup(ctx context.Context, list *models.TodoList) error 
 
 // RemoveUserFromGroup - метод удаления пользователя из группы, как себя, так и другого по id
 func (p *PGStore) RemoveUserFromGroup(ctx context.Context, list *models.TodoList) error {
+	q := `DELETE FROM user_groups WHERE user_id=$1 AND group_id=$2 `
+	if _, err := p.client.Exec(ctx, q, list.AnotherUserID, list.GroupID); err != nil {
+		// TODO ERROR
+		return err
+	}
 	return nil
 }
 

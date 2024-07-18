@@ -39,5 +39,5 @@ func (h *Handler) Register(r *mux.Router) {
 	secure.HandleFunc("/api/groups", h.createGroup()).Methods("POST")
 	secure.HandleFunc("/api/groups/{groupId}/users", h.addUserToGroup()).Methods("POST")
 	secure.HandleFunc("/api/groups/{groupId}", h.deleteGroup()).Methods("DELETE")
-	secure.HandleFunc("api/groups/{groupId}/users/{userId}", h.removeUserFromGroup()).Methods("DELETE")
+	secure.HandleFunc("/api/groups/{groupId}/users/{userId}", h.removeUserFromGroup()).Methods("DELETE")
 }

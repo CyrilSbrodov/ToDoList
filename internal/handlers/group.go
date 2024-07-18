@@ -130,7 +130,7 @@ func (h *Handler) removeUserFromGroup() http.HandlerFunc {
 			return
 		}
 		//отправка данных на слой ниже, в транспорт
-		if err := h.service.DeleteGroup(r.Context(), &list); err != nil {
+		if err := h.service.RemoveUserFromGroup(r.Context(), &list); err != nil {
 			h.logger.Error("func DeleteGroup", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
