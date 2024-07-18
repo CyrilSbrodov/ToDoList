@@ -32,4 +32,7 @@ func (h *Handler) Register(r *mux.Router) {
 	secure.Use(h.userIdentity)
 	secure.HandleFunc("/api/task", h.GetAll()).Methods("GET")
 	secure.HandleFunc("/api/task", h.NewList()).Methods("POST")
+	secure.HandleFunc("/api/group", h.NewGroup()).Methods("POST")
+	secure.HandleFunc("/api/group", h.AddInGroup()).Methods("PUT")
+	secure.HandleFunc("/api/group", h.DeleteGroup()).Methods("DELETE")
 }

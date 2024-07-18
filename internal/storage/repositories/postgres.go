@@ -126,10 +126,60 @@ func (p *PGStore) Auth(ctx context.Context, u *models.User) (string, error) {
 
 func (p *PGStore) NewTask(ctx context.Context, list *models.TodoList) error {
 	q := `INSERT INTO tasks (task_description, created_by, group_id, is_completed) VALUES ($1, $2, $3, $4)`
-	if err := p.client.QueryRow(ctx, q, list.Task, list.UserID, list.Group, list.Status); err != nil {
-		// TODO error
+	if _, err := p.client.Exec(ctx, q, list.Task, list.UserID, list.Group, list.Status); err != nil {
+		p.logger.Error("Failure to select object from table", err)
+		return err
 	}
 	return nil
+}
+
+func (p *PGStore) NewGroup(ctx context.Context, list *models.TodoList) error {
+	q := `INSERT INTO groups (group_name) VALUES ($1) RETURNING group_id`
+	var groupID string
+	if err := p.client.QueryRow(ctx, q, list.Group).Scan(&groupID); err != nil {
+		//TODO err
+		return err
+	}
+	q = `INSERT INTO user_groups (user_id, group_id) VALUES ($1, $2)`
+	if _, err := p.client.Exec(ctx, q, list.UserID, groupID); err != nil {
+		//TODO err
+		return err
+	}
+	return nil
+}
+
+func (p *PGStore) AddInGroup(ctx context.Context, list *models.TodoList) error {
+	q := `INSERT INTO user_groups (user_id, group_id) VALUES ($1, $2)`
+	if _, err := p.client.Exec(ctx, q, list.InviteUserID, list.GroupID); err != nil {
+		//TODO err
+		return err
+	}
+	return nil
+}
+
+func (p *PGStore) DeleteGroup(ctx context.Context, list *models.TodoList) error {
+	tx, err := p.client.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		//TODO err
+		return err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+		}
+	}()
+
+	q := `DELETE FROM groups WHERE group_id=$1`
+	if _, err = tx.Exec(ctx, q, list.GroupID); err != nil {
+		//TODO err
+		return err
+	}
+	q = `DELETE FROM user_groups WHERE group_id=$1`
+	if _, err = tx.Exec(ctx, q, list.GroupID); err != nil {
+		//TODO err
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (p *PGStore) GetAll(ctx context.Context, u *models.User) error {

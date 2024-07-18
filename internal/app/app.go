@@ -39,13 +39,13 @@ func NewServerApp() *ServerApp {
 func (a *ServerApp) Run() {
 	client, err := postgres.NewClient(context.Background(), 5, &a.cfg, a.logger)
 	if err != nil {
-		a.logger.Error("failed to start pg client", err)
+		a.logger.Error("failed to start pg client", err, "server")
 		return
 	}
 
 	store, err := repositories.NewPGStore(client, &a.cfg, a.logger)
 	if err != nil {
-		a.logger.Error("failed to start pg store", err)
+		a.logger.Error("failed to start pg store", err, "server")
 		return
 	}
 	t := transport.NewTransport(*store)
@@ -76,7 +76,7 @@ func (a *ServerApp) Run() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err = srv.Shutdown(ctx); err != nil {
-		a.logger.Error("server", "failed to shutting down gracefully", err)
+		a.logger.Error("failed to shutting down gracefully", err, "server")
 		return
 	}
 	a.logger.Info("shutting down", slog.String("server", a.cfg.Listener.Addr))

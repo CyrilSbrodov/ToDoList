@@ -27,7 +27,7 @@ func (h *Handler) SignUp() http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprintf(w, "User: %s has been created. ID : %s", user.Name, id)
+		_, _ = w.Write([]byte(fmt.Sprintf("User: %s has been created. ID : %s", user.Name, id)))
 		return
 	}
 }
@@ -50,7 +50,7 @@ func (h *Handler) SignIn() http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, token)
+		_, _ = w.Write([]byte(fmt.Sprintf(token)))
 		return
 	}
 }
